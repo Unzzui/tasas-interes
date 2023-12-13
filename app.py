@@ -242,9 +242,9 @@ app.layout = dbc.Container([
         type="image/x-icon"
     ),
     dbc.Row(
-        dbc.Col(html.H1("Tasas de Interés Bancos Chilenos", className="text-center"), width="auto"),
+        dbc.Col(html.H2("Tasas de Interés de Bancos Chilenos y Descubre la Realidad de los Costos Financieros de Empresas del IPSA", className="text-center"), width="auto"),
         justify="center",
-        style={"margin-top": "5rem", "margin-bottom": "1rem"}
+        style={"margin-top": "5rem", "margin-bottom": "1rem" ,'margin-left':'20px','margin-right':'20px'}
     ),
     
     dbc.Row(
