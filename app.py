@@ -269,6 +269,8 @@ app.layout = dbc.Container([
                 - Descarga datos en formato CSV o Excel para tu propio análisis.
 
                 Nuestro objetivo es proporcionarte una herramienta que te ayude a comprender mejor el panorama financiero de las empresas chilenas.
+                
+                **Para una experiencia óptima, se recomienda visualizar esta página en un PC. Si estás utilizando un teléfono, gira tu dispositivo horizontalmente para obtener una mejor visualización  **             
 
                 ¡Esperamos que esta aplicación sea de gran utilidad para ti!
                 """
