@@ -168,12 +168,12 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos, selecte
     kpi_cards = dbc.Row([
         dbc.Col(dbc.Card([
             html.H3(f"{max_average_interest_rate_value:.2f}%", className="card-title text-muted"),
-            html.P(f"Tasa de Interés más Alta Promedio -  {max_average_interest_rate}",
+            html.P(f"Tasa de Interés más Alta - {max_average_interest_rate}",
                    className="card-text"),
         ], body=True, color="light", inverse=False)),
         dbc.Col(dbc.Card([
             html.H3(f"{min_average_interest_rate_value:.2f}%", className="card-title text-muted"),
-            html.P(f"Tasa de Interés más Baja Promedio -  {min_average_interest_rate}",
+            html.P(f"Tasa de Interés más Baja - {min_average_interest_rate}",
                    className="card-text"),
         ], body=True, color="light", inverse=False)),
         dbc.Col(dbc.Card([
@@ -269,9 +269,9 @@ app.layout = dbc.Container([
                 - Descarga datos en formato CSV o Excel para tu propio análisis.
 
                 Nuestro objetivo es proporcionarte una herramienta que te ayude a comprender mejor el panorama financiero de las empresas chilenas.
-                
-                **Para una experiencia óptima, se recomienda visualizar esta página en un PC. Si estás utilizando un teléfono, gira tu dispositivo horizontalmente para obtener una mejor visualización  **             
 
+                **Para una experiencia óptima, se recomienda visualizar esta página en un PC. Si estás utilizando un teléfono, gira tu dispositivo horizontalmente para obtener una mejor visualización  **             
+                
                 ¡Esperamos que esta aplicación sea de gran utilidad para ti!
                 """
             ),
