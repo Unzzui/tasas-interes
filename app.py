@@ -140,21 +140,44 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos, selecte
     if selected_bancos:
         filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
         
+    # Verificar si solo se ha seleccionado una empresa (si selected_empresas es una lista)
+    if selected_empresas is not None and len(selected_empresas) == 1:
+        # Calcular la tasa de interés promedio ponderada de la empresa seleccionada
+        selected_empresa = selected_empresas[0]
+        weighted_average_interest_rate = (filtered_df[filtered_df['Empresa'] == selected_empresa]['Tasa Nominal'] * 
+                                           filtered_df[filtered_df['Empresa'] == selected_empresa]['Total']).sum() / \
+                                          filtered_df[filtered_df['Empresa'] == selected_empresa]['Total'].sum() * 100
+        
+        # Mostrar un KPI especial para la empresa seleccionada
+        selected_empresa_kpi = dbc.Row(
+            dbc.Col(
+                dbc.Card([
+                    html.H3(f"{weighted_average_interest_rate:.2f}%", className="card-title text-muted"),
+                    html.P(f"Tasa Promedio Ponderada de {selected_empresa}", className="card-title"),
+                ], body=True, color="light", inverse=False),
+                width={"size": 4, "offset": 4},  # Ancho de 4 y centrado
+            )
+        )
+        return selected_empresa_kpi
+    
     # Verificar si solo se ha seleccionado un banco (si selected_bancos es una lista)
     if selected_bancos is not None and len(selected_bancos) == 1:
         # Calcular la tasa de interés promedio del banco seleccionado
+        selected_banco = selected_bancos[0]
         single_bank_average_interest_rate = filtered_df['Tasa Nominal'].mean() * 100
-        # Mostrar un KPI especial para un solo banco
+        
+        # Mostrar un KPI especial para el banco seleccionado
         single_bank_kpi = dbc.Row(
             dbc.Col(
                 dbc.Card([
                     html.H3(f"{single_bank_average_interest_rate:.2f}%", className="card-title text-muted"),
-                    html.P(f"Tasa de Interés Promedio del {selected_bancos[0]}", className="card-title"),
+                    html.P(f"Tasa de Interés Promedio del {selected_banco}", className="card-title"),
                 ], body=True, color="light", inverse=False),
                 width={"size": 4, "offset": 4},  # Ancho de 4 y centrado
             )
         )
         return single_bank_kpi
+    
     
     max_average_interest_rate = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().idxmax()
     max_average_interest_rate_value = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().max() * 100
