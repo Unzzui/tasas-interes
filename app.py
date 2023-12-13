@@ -19,6 +19,7 @@ colores_banco = px.colors.qualitative.Set1[:len(df['Nombre entidad acreedora'].u
 
 # Inicializar la aplicación Dash sin tema de Bootstrap
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])  # Usando Bootstrap para mejorar el diseño
+server = app.server
 
 # Obtener la lista de nombres de empresas, sectores y bancos únicos
 empresa_options = [{'label': empresa, 'value': empresa} for empresa in df['Empresa'].unique()]
