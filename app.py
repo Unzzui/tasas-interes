@@ -37,7 +37,7 @@ banco_options = [{'label': banco, 'value': banco} for banco in df_bancos_chileno
 external_stylesheets = ['styles.css']
 
 clasification_text = """
-### Clasificación
+### Clasificación - Rating
 
 Estas categorías se utilizan para evaluar la solidez financiera de diferentes instrumentos financieros, como bonos o préstamos. Aquí está una explicación más simple:
 
