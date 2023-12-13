@@ -9,6 +9,7 @@ from datetime import datetime as dt
 from flask import Flask, send_file
 import io
 from dash.exceptions import PreventUpdate
+import plotly.graph_objects as go
 
 # Cargar los datos desde el archivo Excel
 
@@ -25,6 +26,7 @@ app.title = "Prestamos Bancarios Empresas Chilenas"
 # Obtener la lista de nombres de empresas, sectores y bancos únicos
 empresa_options = [{'label': empresa, 'value': empresa} for empresa in df['Empresa'].unique()]
 sector_options = [{'label': sector, 'value': sector} for sector in df['Sector'].unique()]
+plazo_options = [{'label': plazo, 'value': plazo} for plazo in df['Plazo'].unique()]
 # Filtrar el DataFrame para incluir solo bancos chilenos
 df_bancos_chilenos = df[df['Pais Empresa Acreedora'] == 'Chile']
 
@@ -39,8 +41,8 @@ clasification_text = """
 
 Estas categorías se utilizan para evaluar la solidez financiera de diferentes instrumentos financieros, como bonos o préstamos. Aquí está una explicación más simple:
 
-- **Categoría AAA:** La mejor categoría, significa que es muy probable que el emisor pague el dinero prestado en los términos acordados sin importar los cambios económicos.
-- **Categoría AA:** Muy buena, también es probable que el emisor pague como se acordó, pero puede ser un poco menos resistente a cambios económicos.
+- **Categoría AAA:** La mejor categoría, significa que es muy probable que la  pague el dinero prestado en los términos acordados sin importar los cambios económicos.
+- **Categoría AA:** Muy buena, también es probable que la empresa pague como se acordó, pero puede ser un poco menos resistente a cambios económicos.
 - **Categoría A:** Buena, probablemente se pagará según lo acordado, pero puede ser más vulnerable a cambios económicos.
 - **Categoría BBB:** Suficiente, es probable que se pague, pero existe un riesgo mayor de que se vea afectado por cambios económicos.
 - **Categoría BB:** Aceptable, es posible que se pague, pero la capacidad de pago es variable y puede verse afectada por cambios económicos, incluso con retrasos en los pagos.
@@ -56,21 +58,19 @@ Estas categorías se utilizan para evaluar la solidez financiera de diferentes i
 
 navbar = dbc.Navbar(
     children=[
-        html.Script(src="https://code.jquery.com/jquery-3.5.1.min.js"),
-        html.Script(src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"),
         dbc.NavbarToggler(id="navbar-toggler"),
+
         dbc.Collapse(
             dbc.Nav(
                 [
                     dbc.NavItem(dbc.NavLink(html.A("Inicio", href="/#", className="nav-link-custom"))),
-                    dbc.NavItem(dbc.NavLink(html.A("Gráficos", href="/#bar-chart", className="nav-link-custom"))),
+                    dbc.NavItem(dbc.NavLink(html.A("Gráficos", href="/#kpi-cards-container", className="nav-link-custom"))),
                     dbc.NavItem(dbc.NavLink(html.A("Descargar Datos", href="/#descargar-seccion", className="nav-link-custom"))),
                     dbc.NavItem(dbc.NavLink(html.A("DUOC", href="https://www.duoc.cl/", target="_blank", className="nav-link-custom"))),
                     dbc.NavItem(dbc.NavLink(html.A("Contacto", href="mailto:diegobravobe@gmail.com?subject=Consulta%20Web%20Tasas%20de%20Interés", className="nav-link-custom"))),
-
                 ],
                 navbar=True,
-                className="ml-auto mx-auto",
+                className="mx-auto",  # Esto centra los elementos en el Navbar
             ),
             id="navbar-collapse",
             navbar=True,
@@ -78,9 +78,10 @@ navbar = dbc.Navbar(
     ],
     color="dark",
     sticky="top",
-    className="w-100 h-1"
-    
 )
+
+
+
 
 # Footer con tu información de contacto
 footer = dbc.Row(
@@ -120,7 +121,7 @@ def customizar_grafico(fig):
 
 
 
-def generate_kpis(selected_empresas, selected_sectores, selected_bancos):
+def generate_kpis(selected_empresas, selected_sectores, selected_bancos, selected_plazo):
     # Cálculos de las tasas promedio máximas y mínimas
    
     filtered_df = df.copy()
@@ -130,7 +131,8 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos):
         filtered_df = filtered_df[filtered_df['Empresa'].isin(selected_empresas)]
     if selected_sectores:
         filtered_df = filtered_df[filtered_df['Sector'].isin(selected_sectores)]
-
+    if selected_plazo:
+        filtered_df = filtered_df[filtered_df['Plazo'].isin(selected_plazo)]
     # Filtrar el DataFrame para incluir solo bancos chilenos
     filtered_df = filtered_df[filtered_df['Pais Empresa Acreedora'] == 'Chile']
 
@@ -198,11 +200,12 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos):
     Output('kpi-cards-container', 'children'),
     [Input('empresa-dropdown', 'value'),
      Input('sector-dropdown', 'value'),
-     Input('banco-dropdown', 'value')]
+     Input('banco-dropdown', 'value'),
+     Input('plazo-dropdown', 'value')]
 )
-def update_kpi_cards(selected_empresas, selected_sectores, selected_bancos):
+def update_kpi_cards(selected_empresas, selected_sectores, selected_bancos, selected_plazo):
     # Actualizar los KPIs en función de las selecciones de los dropdowns
-    kpi_cards = generate_kpis(selected_empresas, selected_sectores, selected_bancos)
+    kpi_cards = generate_kpis(selected_empresas, selected_sectores, selected_bancos, selected_plazo)
     return kpi_cards
 
 
@@ -233,77 +236,104 @@ navbar_wrapper = html.Div(
 # Diseño de la aplicación
 app.layout = dbc.Container([
     navbar_wrapper,
-        html.Link(
-            rel="icon",
-            href="/assets/img/favicon.ico",
-            type="image/x-icon"
+    html.Link(
+        rel="icon",
+        href="/assets/img/favicon.ico",
+        type="image/x-icon"
+    ),
+    dbc.Row(
+        dbc.Col(html.H1("Tasas de Interés Bancos Chilenos", className="text-center"), width="auto"),
+        justify="center",
+        style={"margin-top": "5rem", "margin-bottom": "1rem"}
+    ),
+    
+    dbc.Row(
+        dbc.Col(
+            dcc.Markdown(
+                """
+                **Descubre los Costos Financieros de las Empresas Chilenas**
+
+                En el mundo financiero, las tasas de interés son un indicador crítico que afecta tanto a las empresas como a los individuos. Estas tasas determinan el costo de los préstamos y tienen un impacto significativo en las decisiones financieras.
+
+                Sin embargo, a menudo nos enfrentamos a la dispersión y fragmentación de la información sobre tasas de interés, especialmente en el contexto de las empresas chilenas, ya que no existen simuladores que mencionen la tasa de interés real que pagan las empresas.
+
+                Esta aplicación fue creada con el propósito de brindarte una visión más clara y accesible de las tasas de interés de préstamos ofrecidos por diferentes bancos en Chile, centrándose especialmente en las empresas que componen el IPSA.
+
+                ### ¿Qué Puedes Hacer Aquí?
+
+                - Explora datos de tasas de interés de empresas chilenas.
+                - Filtra por empresa, sector, banco y plazo para análisis personalizados.
+                - Visualiza gráficos informativos y realiza comparaciones.
+                - Descarga datos en formato CSV o Excel para tu propio análisis.
+
+                Nuestro objetivo es proporcionarte una herramienta que te ayude a comprender mejor el panorama financiero de las empresas chilenas.
+
+                ¡Esperamos que esta aplicación sea de gran utilidad para ti!
+                """
+            ),
+            width="auto"
         ),
-       dbc.Row(
-            dbc.Col(html.H1("Análisis Tasas de Interés Bancos Chilenos", className="text-center"), width="auto"),
-            justify="center",
-            style={"margin-top": "4rem", "margin-bottom":"2rem"}
-        ),    
+        justify="center",
+        style={"margin-bottom": "2rem", "padding": "0 15px", 'margin-left':'20px','margin-right':'20px'}  # Agrega margen inferior y relleno horizontal
+    ),
     # Incluir KPIs con un estilo mejorado
     html.Div(id='kpi-cards-container'),
     # Mejor diseño para los Dropdowns
-    dbc.Container(
     dbc.Row([
-        dbc.Col(dcc.Dropdown(id='empresa-dropdown', options=empresa_options, multi=True, placeholder="Seleccionar Empresa(s)", className="mt-4 mb-2"), width=4),
-        dbc.Col(dcc.Dropdown(id='sector-dropdown', options=sector_options, multi=True, placeholder="Seleccionar Sector(es)", className="mt-4 mb-2"), width=4),
-        dbc.Col(dcc.Dropdown(id='banco-dropdown', options=banco_options, multi=True, placeholder="Seleccionar Banco(s) (Solo Chilenos)", className="mt-4 mb-2"), width=4),
-    ], justify="around"),
+        dbc.Col(dcc.Dropdown(id='empresa-dropdown', options=empresa_options, multi=True, placeholder="Seleccionar Empresa(s)", className="mt-2 mb-2"), width=6, lg=3, md=12, sm=12, xs=12),
+        dbc.Col(dcc.Dropdown(id='sector-dropdown', options=sector_options, multi=True, placeholder="Seleccionar Sector(es)", className="mt-2 mb-2"), width=6, lg=3, md=12, sm=12, xs=12),
+        dbc.Col(dcc.Dropdown(id='banco-dropdown', options=banco_options, multi=True, placeholder="Seleccionar Banco(s) (Solo Chilenos)", className="mt-2 mb-2"), width=6, lg=3, md=12, sm=12, xs=12),
+        dbc.Col(dcc.Dropdown(id='plazo-dropdown', options=plazo_options, multi=True, placeholder="Seleccionar Plazo", className="mt-2 mb-2"), width=6, lg=3, md=12, sm=12, xs=12),
+    ], justify="around",   style={"margin-left": "60px", "margin-right": "60px"}  # Agrega margen izquierdo y derecho
 ),
-    dbc.Row(dbc.Col(dcc.Graph(id='bar-chart',config=display_bar_logo), width=12)),
-
-    # Gráficos con mejor diseño
+    dbc.Row(dbc.Col(dcc.Graph(id='bar-chart', config=display_bar_logo), width=12), className="mb-4"),  # Tamaño completo en dispositivos móviles
     dbc.Row([
-        dbc.Col(dcc.Graph(id='scatter-plot',config=display_bar_logo), width=6),
-        dbc.Col(dcc.Graph(id='boxplot',config=display_bar_logo), width=6),
+        dbc.Col(dcc.Graph(id='scatter-plot', config=display_bar_logo), width=12, lg=6, md=12, sm=12, xs=12),  # Ancho completo en dispositivos móviles en orientación vertical
+        dbc.Col(dcc.Graph(id='boxplot', config=display_bar_logo), width=12, lg=6, md=12, sm=12, xs=12),
     ], justify="around"),
-
-
     dbc.Row(
         dbc.Col(dcc.Markdown(clasification_text, className="p-4"), className="mt-4 bg-light border"),
-        justify="center"
+        justify="center" 
     ),
-         dbc.Row(
-            dbc.Col(
-                html.H3(children="Descargar Datos", id="descargar-seccion"),
-                width="auto"
-            ),
-            justify="center",
-            style={"margin-top": "4rem", "margin-bottom": "0.5rem"}
+    dbc.Row(
+        dbc.Col(
+            html.H3(children="Descargar Datos", id="descargar-seccion"),
+            width="auto"
         ),
-        dbc.Row(
-            dbc.Col(
-                html.P(
-                    "Descarga la base de datos completa en CSV para acceder a todos los datos disponibles. Además, tienes la opción de descargar los datos en formato Excel, en el caso de que no se tenga disponible la forma de abrir el archivo en formato CSV."
-                ),
-                width="auto"
+        justify="center",
+        style={"margin-top": "4rem", "margin-bottom": "0.5rem"}
+    ),
+    dbc.Row(
+        dbc.Col(
+            html.P(
+                "Descarga la base de datos completa en CSV para acceder a todos los datos disponibles. Además, tienes la opción de descargar los datos en formato Excel, en el caso de que no se tenga disponible la forma de abrir el archivo en formato CSV."
             ),
-            justify="center",
-            style={"margin-bottom": "0.2rem"}
+            width="auto"
         ),
-        dbc.Row(
-            dbc.Col(
-                html.Div(
-                    className="text-center my-4",
-                    children=[
-                        html.A(
-                            html.Button("Descargar CSV", className="btn btn-info", style={"margin-right": "10px"}),
-                            href="/download_csv"
-                        ),
-                        html.A(
-                            html.Button("Descargar Excel", className="btn btn-info ml-10 mt-10"),
-                            href="/download_excel"
-                        ),
-                    ]
-                ),
+        justify="center",
+        style={"margin-bottom": "0.2rem","margin-left": "20px", "margin-right": "20px"} 
+    ),
+    dbc.Row(
+        dbc.Col(
+            html.Div(
+                className="text-center my-4",
+                children=[
+                    html.A(
+                        html.Button("Descargar CSV", className="btn btn-info", style={"margin-right": "10px"}),
+                        href="/download_csv"
+                    ),
+                    html.A(
+                        html.Button("Descargar Excel", className="btn btn-info ml-10 mt-10"),
+                        href="/download_excel"
+                    ),
+                ]
             ),
-            justify="center"
         ),
+        justify="center" 
+    ),
     footer,
-], fluid=True, className="py-3")
+], fluid=True, className="py-3 p-0")  # Elimina el relleno del Container
+
 
 base_graph_style = {
     'font_family': 'Open Sans, sans-serif',
@@ -317,7 +347,7 @@ base_graph_style = {
 
 
 
-def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos):
+def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos, selected_plazo):
     # Crear una copia del DataFrame original
     filtered_df = df.copy()
 
@@ -326,6 +356,8 @@ def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos):
         filtered_df = filtered_df[filtered_df['Empresa'].isin(selected_empresas)]
     if selected_sectores:
         filtered_df = filtered_df[filtered_df['Sector'].isin(selected_sectores)]
+    if selected_plazo:
+        filtered_df = filtered_df[filtered_df['Plazo'].isin(selected_plazo)]
 
     # Filtrar el DataFrame para incluir solo bancos chilenos
     filtered_df = filtered_df[filtered_df['Pais Empresa Acreedora'] == 'Chile']
@@ -374,9 +406,10 @@ def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos):
     Output('boxplot', 'figure'),
     [Input('empresa-dropdown', 'value'),
      Input('sector-dropdown', 'value'),
-     Input('banco-dropdown', 'value')]
+     Input('banco-dropdown', 'value'),
+     Input('plazo-dropdown', 'value')]
 )
-def update_boxplot(selected_empresas, selected_sectores, selected_bancos):
+def update_boxplot(selected_empresas, selected_sectores, selected_bancos, selected_plazo):
     # Filtrar el DataFrame según las selecciones
     filtered_df = df.copy()
     filtered_df = filtered_df[filtered_df['Pais Empresa Acreedora'] == 'Chile']
@@ -387,12 +420,14 @@ def update_boxplot(selected_empresas, selected_sectores, selected_bancos):
         filtered_df = filtered_df[filtered_df['Sector'].isin(selected_sectores)]
     if selected_bancos:
         filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
+    if selected_plazo:
+        filtered_df = filtered_df[filtered_df['Plazo'].isin(selected_plazo)] 
      # Verificar si el DataFrame filtrado está vacío
     if filtered_df.empty:
         return px.box()
 
     # Lista ordenada de ratings
-    ordered_ratings = ['AA+', 'AA', 'AA-', 'A', 'A-', 'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-', 'C', 'D', 'E']
+    ordered_ratings = ['AA+', 'AA', 'AA-', 'A+', 'A', 'A-', 'BBB+', 'BBB', 'BBB-', 'BB+', 'BB', 'BB-', 'B+', 'B', 'B-', 'C', 'D', 'E']
 
     # Ajustar las categorías de 'Rating' basadas en los valores presentes en el DataFrame filtrado
     existing_ratings = filtered_df['Rating'].dropna().unique()
@@ -440,9 +475,10 @@ def update_boxplot(selected_empresas, selected_sectores, selected_bancos):
      Output('scatter-plot', 'figure')],
     [Input('empresa-dropdown', 'value'),
      Input('sector-dropdown', 'value'),
-     Input('banco-dropdown', 'value')]
+     Input('banco-dropdown', 'value'),
+     Input('plazo-dropdown', 'value')]
 )
-def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos):
+def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos, selected_plazo):
     # Crear una copia del DataFrame original
     filtered_df = df.copy()
 
@@ -451,7 +487,8 @@ def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos
         filtered_df = filtered_df[filtered_df['Empresa'].isin(selected_empresas)]
     if selected_sectores:
         filtered_df = filtered_df[filtered_df['Sector'].isin(selected_sectores)]
-
+    if selected_plazo:
+        filtered_df = filtered_df[filtered_df['Plazo'].isin(selected_plazo)]
     # Filtrar el DataFrame para incluir solo bancos chilenos
     filtered_df = filtered_df[filtered_df['Pais Empresa Acreedora'] == 'Chile']
 
@@ -463,7 +500,7 @@ def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos
     # Agrupar por moneda y calcular la tasa de interés promedio
     grouped_df = filtered_df.groupby(['Tipo Moneda', 'Nombre Entidad Acreedora'])['Tasa Nominal'].mean().reset_index()
     grouped_df = grouped_df.sort_values(by=['Tipo Moneda', 'Tasa Nominal'], ascending=[True, True])
-    scatter_fig = update_scatter_plot(selected_empresas, selected_sectores, selected_bancos)
+    scatter_fig = update_scatter_plot(selected_empresas, selected_sectores, selected_bancos,selected_plazo)
 
     
     # Crear un gráfico de barras grupales con colores por banco
