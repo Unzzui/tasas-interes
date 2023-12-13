@@ -12,14 +12,15 @@ from dash.exceptions import PreventUpdate
 
 # Cargar los datos desde el archivo Excel
 
-df = pd.read_excel("data/tasas_interes.xlsx", sheet_name="bd_2023_prueba")
+df = pd.read_excel("data/tasas_interes.xlsx", sheet_name="bd_2023")
 
 # Obtener una lista de colores únicos para cada banco
-colores_banco = px.colors.qualitative.Set1[:len(df['Nombre entidad acreedora'].unique())]
+colores_banco = px.colors.qualitative.Set1[:len(df['Nombre Entidad Acreedora'].unique())]
 
 # Inicializar la aplicación Dash sin tema de Bootstrap
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])  # Usando Bootstrap para mejorar el diseño
 server = app.server
+app.title = "Prestamos Bancarios Empresas Chilenas"
 
 # Obtener la lista de nombres de empresas, sectores y bancos únicos
 empresa_options = [{'label': empresa, 'value': empresa} for empresa in df['Empresa'].unique()]
@@ -28,7 +29,7 @@ sector_options = [{'label': sector, 'value': sector} for sector in df['Sector'].
 df_bancos_chilenos = df[df['Pais Empresa Acreedora'] == 'Chile']
 
 # Obtener la lista de nombres de bancos chilenos únicos
-banco_options = [{'label': banco, 'value': banco} for banco in df_bancos_chilenos['Nombre entidad acreedora'].unique()]
+banco_options = [{'label': banco, 'value': banco} for banco in df_bancos_chilenos['Nombre Entidad Acreedora'].unique()]
 
 # Introducción explicativa
 external_stylesheets = ['styles.css']
@@ -135,12 +136,12 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos):
 
     # Si se han seleccionado bancos específicos, aplicar ese filtro
     if selected_bancos:
-        filtered_df = filtered_df[filtered_df['Nombre entidad acreedora'].isin(selected_bancos)]
+        filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
         
     # Verificar si solo se ha seleccionado un banco (si selected_bancos es una lista)
     if selected_bancos is not None and len(selected_bancos) == 1:
         # Calcular la tasa de interés promedio del banco seleccionado
-        single_bank_average_interest_rate = filtered_df['Tasa nominal'].mean() * 100
+        single_bank_average_interest_rate = filtered_df['Tasa Nominal'].mean() * 100
         # Mostrar un KPI especial para un solo banco
         single_bank_kpi = dbc.Row(
             dbc.Col(
@@ -153,13 +154,13 @@ def generate_kpis(selected_empresas, selected_sectores, selected_bancos):
         )
         return single_bank_kpi
     
-    max_average_interest_rate = filtered_df.groupby('Nombre entidad acreedora')['Tasa nominal'].mean().idxmax()
-    max_average_interest_rate_value = filtered_df.groupby('Nombre entidad acreedora')['Tasa nominal'].mean().max() * 100
+    max_average_interest_rate = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().idxmax()
+    max_average_interest_rate_value = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().max() * 100
     
-    min_average_interest_rate = filtered_df.groupby('Nombre entidad acreedora')['Tasa nominal'].mean().idxmin()
-    min_average_interest_rate_value = filtered_df.groupby('Nombre entidad acreedora')['Tasa nominal'].mean().min() * 100
+    min_average_interest_rate = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().idxmin()
+    min_average_interest_rate_value = filtered_df.groupby('Nombre Entidad Acreedora')['Tasa Nominal'].mean().min() * 100
     
-    average_interest_rate = filtered_df['Tasa nominal'].mean() * 100
+    average_interest_rate = filtered_df['Tasa Nominal'].mean() * 100
     
     # Crear las tarjetas para los KPIs
     kpi_cards = dbc.Row([
@@ -232,6 +233,11 @@ navbar_wrapper = html.Div(
 # Diseño de la aplicación
 app.layout = dbc.Container([
     navbar_wrapper,
+        html.Link(
+            rel="icon",
+            href="/assets/img/favicon.ico",
+            type="image/x-icon"
+        ),
        dbc.Row(
             dbc.Col(html.H1("Análisis Tasas de Interés Bancos Chilenos", className="text-center"), width="auto"),
             justify="center",
@@ -326,7 +332,7 @@ def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos):
 
     # Si se han seleccionado bancos específicos, aplicar ese filtro
     if selected_bancos:
-        filtered_df = filtered_df[filtered_df['Nombre entidad acreedora'].isin(selected_bancos)]
+        filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
 
     # Procesar la columna "Total" para obtener el monto del crédito como un valor numérico
     filtered_df['Monto del Crédito'] = filtered_df['Total']
@@ -334,10 +340,10 @@ def update_scatter_plot(selected_empresas, selected_sectores, selected_bancos):
     scatter_fig = px.scatter(
         filtered_df,
         x='Monto del Crédito',  # Monto en el eje x
-        y='Tasa nominal',  # Tasa de interés en el eje y
-        color='Nombre entidad acreedora',
-        hover_data=['Empresa'],  # Aquí se especifica qué datos adicionales mostrar en el hover
-        labels={'Monto del Crédito': 'Monto del Crédito', 'Tasa nominal': 'Tasa de Interés (%)', 'Empresa':'Empresa'},
+        y='Tasa Nominal',  # Tasa de interés en el eje y
+        color='Nombre Entidad Acreedora',
+        hover_data=['Empresa', 'Tipo Moneda'],  # Aquí se especifica qué datos adicionales mostrar en el hover
+        labels={'Monto del Crédito': 'Monto del Crédito', 'Tasa Nominal': 'Tasa de Interés (%)', 'Empresa':'Empresa', 'Tipo Moneda':'Moneda'},
         color_discrete_sequence=colores_banco,
     )
 
@@ -380,7 +386,7 @@ def update_boxplot(selected_empresas, selected_sectores, selected_bancos):
     if selected_sectores:
         filtered_df = filtered_df[filtered_df['Sector'].isin(selected_sectores)]
     if selected_bancos:
-        filtered_df = filtered_df[filtered_df['Nombre entidad acreedora'].isin(selected_bancos)]
+        filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
      # Verificar si el DataFrame filtrado está vacío
     if filtered_df.empty:
         return px.box()
@@ -404,9 +410,9 @@ def update_boxplot(selected_empresas, selected_sectores, selected_bancos):
     boxplot_fig = px.box(
         filtered_df,
         x='Rating',
-        y='Tasa nominal',
+        y='Tasa Nominal',
         color='Rating',
-        labels={'Rating': 'Rating', 'Tasa nominal': 'Tasa de Interés (%)'}
+        labels={'Rating': 'Rating', 'Tasa Nominal': 'Tasa de Interés (%)'}
     )
 
     # Personalizar el gráfico de caja
@@ -451,12 +457,12 @@ def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos
 
     # Si se han seleccionado bancos específicos, aplicar ese filtro
     if selected_bancos:
-        filtered_df = filtered_df[filtered_df['Nombre entidad acreedora'].isin(selected_bancos)]
+        filtered_df = filtered_df[filtered_df['Nombre Entidad Acreedora'].isin(selected_bancos)]
 
     
     # Agrupar por moneda y calcular la tasa de interés promedio
-    grouped_df = filtered_df.groupby(['Tipo Moneda', 'Nombre entidad acreedora'])['Tasa nominal'].mean().reset_index()
-    grouped_df = grouped_df.sort_values(by=['Tipo Moneda', 'Tasa nominal'], ascending=[True, True])
+    grouped_df = filtered_df.groupby(['Tipo Moneda', 'Nombre Entidad Acreedora'])['Tasa Nominal'].mean().reset_index()
+    grouped_df = grouped_df.sort_values(by=['Tipo Moneda', 'Tasa Nominal'], ascending=[True, True])
     scatter_fig = update_scatter_plot(selected_empresas, selected_sectores, selected_bancos)
 
     
@@ -464,10 +470,10 @@ def update_bar_and_scatter(selected_empresas, selected_sectores, selected_bancos
     fig = px.bar(
         grouped_df,
         x='Tipo Moneda',
-        y='Tasa nominal',
-        color='Nombre entidad acreedora',
+        y='Tasa Nominal',
+        color='Nombre Entidad Acreedora',
         barmode='group',
-        labels={'Tipo Moneda': 'Moneda', 'Tasa nominal': 'Tasa de Interés (%)'},
+        labels={'Tipo Moneda': 'Moneda', 'Tasa Nominal': 'Tasa de Interés (%)'},
         color_discrete_sequence=colores_banco,
     )
 
