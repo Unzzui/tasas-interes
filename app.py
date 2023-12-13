@@ -259,6 +259,8 @@ app.layout = dbc.Container([
 
                 Esta aplicación fue creada con el propósito de brindarte una visión más clara y accesible de las tasas de interés de préstamos ofrecidos por diferentes bancos en Chile, centrándose especialmente en las empresas que componen el IPSA.
 
+                **Nota:** Los datos utilizados en esta aplicación son recopilados directamente de los estados financieros de las empresas actualizados a septiembre de 2023.
+
                 ### ¿Qué Puedes Hacer Aquí?
 
                 - Explora datos de tasas de interés de empresas chilenas.
